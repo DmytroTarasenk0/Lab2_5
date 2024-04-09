@@ -1,9 +1,14 @@
-﻿/// Інтерфейси Транспортний Засіб, Двоколісний Транспорт
-/// Абстрактні класи Автомобіль
+﻿/// Інтерфейси Транспортний Засіб, 
+/// Абстрактні класи Автомобіль, Двоколісний Транспорт
 /// СабКласи Велосипед, Мопед, Мотоцикл, Потяг, Cargo автомобіль, Passenger автомобіль,
+/// Також 2 класи(+1 mother-class) вагонів для потягу
 /// Рахувати час/вартість перевезення людей/речей
 
+
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace Lab2_5
 {
@@ -13,117 +18,228 @@ namespace Lab2_5
         double CalculateTime(double distance);
     }
 
-    interface ITwoWheels : ITransport
+    abstract class TwoWheels : ITransport
     {
-        
+        public double Consumption { get; protected set; }
+        public int MaxSpeed { get; protected set; }
+        public int Seats { get; protected set; }
+
+        public abstract double CalculateCost(double distance);
+        public abstract double CalculateTime(double distance);
+
+        public virtual void Info()
+        {
+            Console.WriteLine($"Fuel Consumption: {Consumption} L/100km, " +
+                $"\nMax Speed: {MaxSpeed} km/h " +
+                $"\nSeats: {Seats}");
+        }
     }
 
     abstract class Car : ITransport
     {
-        public double Weight { get; protected set; }
-        public double Price { get; protected set; }
-        public double Size { get; protected set; }
+        public string Model { get; protected set; }
+        public double Consumption { get; protected set; }
+        public decimal Price { get; protected set; }
+        public int MaxSpeed { get; protected set; }
 
         public abstract double CalculateCost(double distance);
         public abstract double CalculateTime(double distance);
+
+        public virtual void Info()
+        {
+            Console.WriteLine($"Model: {Model}, " +
+                $"\nFuel Consumption: {Consumption} L/100km, " +
+                $"\nPrice: {Price}$, " +
+                $"\nMax Speed: {MaxSpeed} km/h");
+        }
     }
 
-    class Passenger_Car : Car
+    class PassengerCar : Car
     {
-        public Passenger_Car()
+        public int Seats { get; protected set; }
+
+        public PassengerCar(string m, double c, decimal p, int mS, int seats)
         {
-            Weight = 1500;
-            Price = 20000;
-            Size = 4;
+            Model = m;
+            Consumption = c;
+            Price = p;
+            MaxSpeed = mS;
+            Seats = seats;
         }
 
         public override double CalculateCost(double distance)
         {
-            return distance * 0.1;
+            return distance / 100 * Consumption * 1.3;
         }
 
         public override double CalculateTime(double distance)
         {
-            return distance / 60;
+            return distance / (2 * MaxSpeed); 
+        }
+
+        public override void Info()
+        {
+            base.Info();
+            Console.WriteLine($"Number of Seats: {Seats}\n");
         }
     }
 
-    class Cargo_Car : Car
+    class CargoCar : Car
     {
-        public Cargo_Car()
+        public double LoadCapacity { get; protected set; }
+
+        public CargoCar(string m, double c, decimal p, int mS, double lC)
         {
-            Weight = 5000;
-            Price = 50000;
-            Size = 8;
+            Model = m;
+            Consumption = c;
+            Price = p;
+            MaxSpeed = mS;
+            LoadCapacity = lC;
         }
 
         public override double CalculateCost(double distance)
         {
-            return distance * 0.2;
+            return distance / 100 * Consumption * 1.3;
         }
 
         public override double CalculateTime(double distance)
         {
-            return distance / 50;
+            return distance / (3 * MaxSpeed);
+        }
+
+        public override void Info()
+        {
+            base.Info();
+            Console.WriteLine($"Load Capacity: {LoadCapacity} kg\n");
         }
     }
 
-    class Moped : ITwoWheels
+    class Carriage
     {
-        public double CalculateCost(double distance)
-        {
-            return distance * 0.05;
-        }
+        public double Weight { get; set; }
+    }
 
-        public double CalculateTime(double distance)
+    class PassengerCarriage : Carriage
+    {
+        public int Seats { get; protected set; }
+
+        public PassengerCarriage()
         {
-            return distance / 30;
+            Seats = 75;
+            Weight = 16000;
         }
     }
 
-    class Motorcycle : ITwoWheels
+    class CargoCarriage : Carriage
     {
-        public double CalculateCost(double distance)
-        {
-            return distance * 0.08;
-        }
+        public double CargoSize { get; protected set; }
 
-        public double CalculateTime(double distance)
+        public CargoCarriage()
         {
-            return distance / 40;
-        }
-    }
-
-    class Bicycle : ITwoWheels
-    {
-        public double CalculateCost(double distance)
-        {
-            return distance * 0.02;
-        }
-
-        public double CalculateTime(double distance)
-        {
-            return distance / 15;
+            CargoSize = 60000;
+            Weight = 27000;
         }
     }
 
     class Train : ITransport
     {
-        private int numberOfCars;
+        private List<Carriage> Carriages;
+        public double Speed {  get; protected set; }
 
-        public Train(int numberOfCars)
+        public Train(int PCarriages, int CCarriages, double speed)
         {
-            this.numberOfCars = numberOfCars;
+            Carriages = new List<Carriage>();
+            for (int i = 0; i < PCarriages; i++)
+            {
+                Carriages.Add(new PassengerCarriage());
+            }
+            for (int i = 0; i < CCarriages; i++)
+            {
+                Carriages.Add(new CargoCarriage());
+            }
+            Speed = speed;
         }
 
         public double CalculateCost(double distance)
         {
-            return distance * 0.05 * numberOfCars;
+            double totalCost = 0;
+            foreach (var carriage in Carriages)
+            {
+                if (carriage is PassengerCarriage)
+                {
+                    totalCost += distance * 75 * 100;
+                }
+                else if (carriage is CargoCarriage)
+                {
+                    totalCost += distance * 60000 * 50;
+                }
+            }
+            return totalCost;
         }
 
         public double CalculateTime(double distance)
         {
-            return distance / 100;
+            return distance / Speed;
+        }
+    }
+
+    class Moped : TwoWheels
+    {
+        public Moped(double c, int mS, int seats)
+        {
+            Consumption = c;
+            MaxSpeed = mS;
+            Seats = seats;
+        }
+
+        public override double CalculateCost(double distance)
+        {
+            return distance / 100 * Consumption * 1.3;
+        }
+
+        public override double CalculateTime(double distance)
+        {
+            return distance / (1.5 * MaxSpeed);
+        }
+    }
+
+    class Motorcycle : TwoWheels
+    {
+        public Motorcycle(double c, int mS, int seats)
+        {
+            Consumption = c;
+            MaxSpeed = mS;
+            Seats = seats;
+        }
+
+        public override double CalculateCost(double distance)
+        {
+            return distance / 100 * Consumption * 1.3;
+        }
+
+        public override double CalculateTime(double distance)
+        {
+            return distance / MaxSpeed;
+        }
+    }
+
+    class Bicycle : TwoWheels
+    {
+        public Bicycle(int mS)
+        {
+            Consumption = 0;
+            MaxSpeed = mS;
+            Seats = 1;
+        }
+
+        public override double CalculateCost(double distance)
+        {
+            return 0;
+        }
+
+        public override double CalculateTime(double distance)
+        {
+            return distance / (2 * MaxSpeed);
         }
     }
 
@@ -131,17 +247,25 @@ namespace Lab2_5
     {
         static void Main(string[] args)
         {
-            Passenger_Car car = new Passenger_Car();
+            PassengerCar car = new PassengerCar("Ford Focus", 8.5, 25000, 250, 5);
             double carCost = car.CalculateCost(100);
             double carTime = car.CalculateTime(100);
-            Console.WriteLine("Cost for Car: " + carCost);
-            Console.WriteLine("Time for Car: " + carTime);
+            Console.WriteLine("Cost for Car: " + carCost + "$");
+            Console.WriteLine("Time for Car: " + carTime + " hours");
+            car.Info();
 
-            Train train = new Train(5);
+            CargoCar cargoCar = new CargoCar("Volvo FH Aero", 14.2, 42000, 200, 1800);
+            double cCarCost = cargoCar.CalculateCost(100);
+            double cCarTime = cargoCar.CalculateTime(100);
+            Console.WriteLine("Cost for Cargo Car: " + cCarCost + "$");
+            Console.WriteLine("Time for Cargo Car: " + cCarTime + " hours");
+            cargoCar.Info();
+
+            Train train = new Train(5, 6, 200);
             double trainCost = train.CalculateCost(100);
             double trainTime = train.CalculateTime(100);
-            Console.WriteLine("Cost for Train: " + trainCost);
-            Console.WriteLine("Time for Train: " + trainTime);
+            Console.WriteLine("Cost for Train: " + trainCost + "$");
+            Console.WriteLine("Time for Train: " + trainTime + " hours");
         }
     }
 }
